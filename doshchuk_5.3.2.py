@@ -1,0 +1,161 @@
+from math import gcd
+
+class Rational:
+    def __init__(self, *args):
+        if len(args) == 1 and isinstance(args[0], str):
+            n, d = map(int, args[0].split('/'))
+        elif len(args) == 2:
+            n, d = args
+        elif len(args) == 1 and isinstance(args[0], Rational):
+            n, d = args[0].n, args[0].d
+        else:
+            raise ValueError("Invalid constructor arguments")
+        if d == 0:
+            raise ZeroDivisionError("Denominator cannot be zero")
+        common = gcd(n, d)
+        self.n = n // common
+        self.d = d // common
+        if self.d < 0:
+            self.n = -self.n
+            self.d = -self.d
+
+    def __str__(self):
+        return f"{self.n}/{self.d}"
+
+    def __repr__(self):
+        return str(self)
+
+    def __add__(self, other):
+        if isinstance(other, int):
+            other = Rational(other, 1)
+        return Rational(self.n * other.d + other.n * self.d, self.d * other.d)
+
+    def __radd__(self, other):
+        return self + other
+
+    def __sub__(self, other):
+        if isinstance(other, int):
+            other = Rational(other, 1)
+        return Rational(self.n * other.d - other.n * self.d, self.d * other.d)
+
+    def __mul__(self, other):
+        if isinstance(other, int):
+            other = Rational(other, 1)
+        return Rational(self.n * other.n, self.d * other.d)
+
+    def __truediv__(self, other):
+        if isinstance(other, int):
+            other = Rational(other, 1)
+        return Rational(self.n * other.d, self.d * other.n)
+
+    def __call__(self):
+        return self.n / self.d
+
+    def __getitem__(self, key):
+        if key == "n":
+            return self.n
+        elif key == "d":
+            return self.d
+        else:
+            raise KeyError
+
+    def __setitem__(self, key, value):
+        if key == "n":
+            self.n = value
+        elif key == "d":
+            if value == 0:
+                raise ZeroDivisionError
+            self.d = value
+        else:
+            raise KeyError
+        self._reduce()
+
+    def _reduce(self):
+        common = gcd(self.n, self.d)
+        self.n //= common
+        self.d //= common
+        if self.d < 0:
+            self.n = -self.n
+            self.d = -self.d
+
+class RationalList:
+    def __init__(self):
+        self._list = []
+
+    def __getitem__(self, index):
+        return self._list[index]
+
+    def __setitem__(self, index, value):
+        if isinstance(value, int):
+            value = Rational(value, 1)
+        if not isinstance(value, Rational):
+            raise TypeError
+        self._list[index] = value
+
+    def __len__(self):
+        return len(self._list)
+
+    def __add__(self, other):
+        new_list = RationalList()
+        new_list._list = self._list.copy()
+        if isinstance(other, RationalList):
+            new_list._list.extend(other._list)
+        elif isinstance(other, (int, Rational)):
+            new_list._list.append(Rational(other, 1) if isinstance(other, int) else other)
+        else:
+            raise TypeError
+        return new_list
+
+    def __iadd__(self, other):
+        if isinstance(other, RationalList):
+            self._list.extend(other._list)
+        elif isinstance(other, (int, Rational)):
+            self._list.append(Rational(other, 1) if isinstance(other, int) else other)
+        else:
+            raise TypeError
+        return self
+
+    def append(self, value):
+        if isinstance(value, int):
+            value = Rational(value, 1)
+        if not isinstance(value, Rational):
+            raise TypeError
+        self._list.append(value)
+
+    def __str__(self):
+        return str(self._list)
+
+    def sum(self):
+        total = Rational(0, 1)
+        for r in self._list:
+            total += r
+        return total
+
+def parse_token(token):
+    token = token.strip()
+    if '/' in token:
+        return Rational(token)
+    else:
+        return Rational(int(token), 1)
+
+def read_rational_list_from_file(filename):
+    rlist = RationalList()
+    with open(filename, "r") as file:
+        for line in file:
+            tokens = line.strip().split()
+            for token in tokens:
+                try:
+                    rlist.append(parse_token(token))
+                except:
+                    pass
+    return rlist
+
+def main():
+    rlist = read_rational_list_from_file("numbers.txt")
+    print(rlist)
+    total = rlist.sum()
+    print(total)
+    print(total())
+
+if __name__ == "__main__":
+    main()
