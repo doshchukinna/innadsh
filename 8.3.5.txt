@@ -1,0 +1,92 @@
+import math
+import numpy as np
+
+class SequenceA:
+    def compute(self, x, k):
+        return x**(2*k) / math.factorial(2*k)
+
+class SequenceB:
+    def compute(self, n):
+        product = 1.0
+        for k in range(1, n + 1):
+            product *= (1 + 1 / (k ** 2))
+        return product
+
+class SequenceC:
+    def build_matrix(self, a, b, n):
+        matrix = np.zeros((n, n))
+        for i in range(n):
+            for j in range(n):
+                if i == j:
+                    matrix[i][j] = a + b
+                elif j == i + 1:
+                    matrix[i][j] = a * b
+                elif j == i - 1:
+                    matrix[i][j] = 1
+        return matrix
+
+    def compute_determinant(self, a, b, n):
+        matrix = self.build_matrix(a, b, n)
+        return np.linalg.det(matrix)
+
+class SequenceD:
+    def __init__(self):
+        self.memo = {1: 1, 2: 1, 3: 1}
+
+    def ak(self, k):
+        if k not in self.memo:
+            self.memo[k] = self.ak(k - 1) + self.ak(k - 3)
+        return self.memo[k]
+
+    def compute_sum(self, n):
+        total = 0
+        for k in range(1, n + 1):
+            total += self.ak(k) / (2 ** k)
+        return total
+
+class SequenceE:
+    def __init__(self, eps=1e-6):
+        self.eps = eps
+
+    def taylor_ln(self, x):
+        if abs(x) >= 1:
+            raise ValueError("Ряд збігається тільки для |x| < 1")
+        term = x
+        result = 0
+        k = 1
+        while abs(term) > self.eps:
+            result += term
+            k += 2
+            term = (x ** k) / k
+            if (k // 2) % 2 == 1:
+                term = -term
+        return 2 * result
+
+    def compare_with_math(self, x):
+        approx = self.taylor_ln(x)
+        exact = math.log1p(x)
+        return approx, exact
+
+if __name__ == "__main__":
+    a = SequenceA()
+    res_a = a.compute(2, 3)
+    print("a) x=2, k=3 =>", res_a)
+
+    b = SequenceB()
+    res_b = b.compute(5)
+    print("b) n=5 =>", res_b)
+
+    c = SequenceC()
+    res_c = c.compute_determinant(2, 3, 4)
+    print("c) det for a=2, b=3, n=4 =>", res_c)
+
+    d = SequenceD()
+    res_d = d.compute_sum(10)
+    print("d) S_10 =>", res_d)
+
+    e = SequenceE(eps=1e-8)
+    approx, exact = e.compare_with_math(0.5)
+    print("e) x=0.5 =>")
+    print("   Taylor approx:", approx)
+    print("   math.log1p(0.5):", exact)
+    print("   error:", abs(approx - exact))
