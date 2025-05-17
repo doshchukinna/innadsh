@@ -1,0 +1,70 @@
+import turtle
+import time
+import math
+from datetime import datetime
+
+class Цифра:
+    def __init__(self, x, y, текст):
+        self.x = x
+        self.y = y
+        self.текст = текст
+        self.малюй()
+
+    def малюй(self):
+        t = turtle.Turtle()
+        t.hideturtle()
+        t.penup()
+        t.goto(self.x, self.y)
+        t.write(self.текст, align="center", font=("Arial", 14, "normal"))
+
+class Циферблат:
+    def __init__(self, радіус=200):
+        self.радіус = радіус
+        self.малюй_циферблат()
+
+    def малюй_циферблат(self):
+        turtle.mode("logo")
+        for i in range(1, 13):
+            кут = math.radians(i * 30)
+            x = self.радіус * math.sin(кут)
+            y = self.радіус * math.cos(кут)
+            Цифра(x, y, str(i))
+
+class Стрілка:
+    def __init__(self, довжина, товщина, колір):
+        self.довжина = довжина
+        self.курсор = turtle.Turtle()
+        self.курсор.hideturtle()
+        self.курсор.speed(0)
+        self.курсор.pensize(товщина)
+        self.курсор.color(колір)
+
+    def малюй(self, кут):
+        self.курсор.clear()
+        self.курсор.penup()
+        self.курсор.goto(0, 0)
+        self.курсор.setheading(90)
+        self.курсор.right(кут)
+        self.курсор.pendown()
+        self.курсор.forward(self.довжина)
+
+def оновити():
+    now = datetime.now()
+    s = now.second
+    m = now.minute
+    h = now.hour % 12 + m / 60
+    стрілка_секунд.малюй(s * 6)
+    стрілка_хвилин.малюй(m * 6)
+    стрілка_годин.малюй(h * 30)
+    turtle.ontimer(оновити, 1000)
+
+if __name__ == "__main__":
+    екран = turtle.Screen()
+    екран.bgcolor("white")
+    екран.title("Аналоговий годинник")
+    Циферблат()
+    стрілка_годин = Стрілка(100, 6, "black")
+    стрілка_хвилин = Стрілка(140, 3, "blue")
+    стрілка_секунд = Стрілка(160, 1, "red")
+    оновити()
+    turtle.mainloop()
