@@ -1,0 +1,99 @@
+import tkinter as tk
+from tkinter import simpledialog, filedialog
+import json
+
+class Furniture:
+    def __init__(self, canvas, name, x, y, w, h, angle=0):
+        self.canvas = canvas
+        self.name = name
+        self.x, self.y, self.w, self.h = x, y, w, h
+        self.angle = angle
+        self.rect = None
+        self.text = None
+        self.draw()
+
+    def draw(self):
+        if self.rect: self.canvas.delete(self.rect)
+        if self.text: self.canvas.delete(self.text)
+        x1, y1 = self.x - self.w//2, self.y - self.h//2
+        x2, y2 = self.x + self.w//2, self.y + self.h//2
+        self.rect = self.canvas.create_rectangle(x1, y1, x2, y2, fill="lightblue")
+        self.text = self.canvas.create_text(self.x, self.y, text=self.name)
+
+    def move(self, dx, dy):
+        self.x += dx
+        self.y += dy
+        self.draw()
+
+    def rotate(self):
+        self.w, self.h = self.h, self.w
+        self.draw()
+
+    def contains(self, x, y):
+        return self.x - self.w//2 <= x <= self.x + self.w//2 and self.y - self.h//2 <= y <= self.y + self.h//2
+
+    def to_dict(self):
+        return {'name': self.name, 'x': self.x, 'y': self.y, 'w': self.w, 'h': self.h}
+
+class App:
+    def __init__(self, root):
+        self.canvas = tk.Canvas(root, width=600, height=400, bg='white')
+        self.canvas.pack()
+        self.furniture = []
+        self.selected = None
+        self.prev = None
+        self.canvas.bind("<Button-1>", self.select)
+        self.canvas.bind("<B1-Motion>", self.drag)
+        self.canvas.bind("<ButtonRelease-1>", lambda e: setattr(self, "prev", None))
+        menu = tk.Menu(root)
+        root.config(menu=menu)
+        m = tk.Menu(menu)
+        menu.add_cascade(label="Меблі", menu=m)
+        m.add_command(label="Додати", command=self.add)
+        m.add_command(label="Повернути", command=self.rotate)
+        m.add_command(label="Зберегти", command=self.save)
+        m.add_command(label="Завантажити", command=self.load)
+
+    def add(self):
+        name = simpledialog.askstring("Назва", "Назва:")
+        w = int(simpledialog.askstring("Ширина", "Ширина:"))
+        h = int(simpledialog.askstring("Висота", "Висота:"))
+        f = Furniture(self.canvas, name, 300, 200, w, h)
+        self.furniture.append(f)
+
+    def select(self, e):
+        for f in reversed(self.furniture):
+            if f.contains(e.x, e.y):
+                self.selected = f
+                self.prev = (e.x, e.y)
+                break
+
+    def drag(self, e):
+        if self.selected and self.prev:
+            dx, dy = e.x - self.prev[0], e.y - self.prev[1]
+            self.selected.move(dx, dy)
+            self.prev = (e.x, e.y)
+
+    def rotate(self):
+        if self.selected:
+            self.selected.rotate()
+
+    def save(self):
+        file = filedialog.asksaveasfilename(defaultextension=".json")
+        if file:
+            with open(file, "w") as f:
+                json.dump([f.to_dict() for f in self.furniture], f)
+
+    def load(self):
+        file = filedialog.askopenfilename(filetypes=[("JSON files", "*.json")])
+        if file:
+            with open(file) as f:
+                data = json.load(f)
+            self.canvas.delete("all")
+            self.furniture = [Furniture(self.canvas, **item) for item in data]
+
+if __name__ == "__main__":
+    root = tk.Tk()
+    App(root)
+    root.mainloop()
+
