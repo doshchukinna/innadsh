@@ -1,0 +1,125 @@
+from math import gcd
+
+class RationalError(ZeroDivisionError):
+    def __init__(self, message="Знаменник не може дорівнювати нулю"):
+        super().__init__(message)
+
+class Rational:
+    def __init__(self, *args):
+        if len(args) == 1 and isinstance(args[0], str):
+            n, d = map(int, args[0].split('/'))
+        elif len(args) == 2 and all(isinstance(arg, int) for arg in args):
+            n, d = args
+        else:
+            raise ValueError("Невірні аргументи конструктора")
+        if d == 0:
+            raise RationalError()
+        self._normalize(n, d)
+
+    def _normalize(self, n, d):
+        sign = -1 if d < 0 else 1
+        g = gcd(n, d)
+        self.n = sign * n // g
+        self.d = abs(d) // g
+
+    def __str__(self):
+        return f"{self.n}/{self.d}"
+
+    def __repr__(self):
+        return f"Rational({self.n}, {self.d})"
+
+    def __add__(self, other):
+        if isinstance(other, int):
+            other = Rational(other, 1)
+        if isinstance(other, Rational):
+            n = self.n * other.d + other.n * self.d
+            d = self.d * other.d
+            return Rational(n, d)
+        raise TypeError("Непідтримуваний тип операнду")
+
+    def __sub__(self, other):
+        if isinstance(other, int):
+            other = Rational(other, 1)
+        if isinstance(other, Rational):
+            n = self.n * other.d - other.n * self.d
+            d = self.d * other.d
+            return Rational(n, d)
+        raise TypeError("Непідтримуваний тип операнду")
+
+    def __mul__(self, other):
+        if isinstance(other, int):
+            other = Rational(other, 1)
+        if isinstance(other, Rational):
+            return Rational(self.n * other.n, self.d * other.d)
+        raise TypeError("Непідтримуваний тип операнду")
+
+    def __truediv__(self, other):
+        if isinstance(other, int):
+            other = Rational(other, 1)
+        if isinstance(other, Rational):
+            if other.n == 0:
+                raise RationalError("Ділення на нуль")
+            return Rational(self.n * other.d, self.d * other.n)
+        raise TypeError("Непідтримуваний тип операнду")
+
+    def __call__(self):
+        return self.n / self.d
+
+    def __getitem__(self, key):
+        if key == 'n':
+            return self.n
+        elif key == 'd':
+            return self.d
+        raise KeyError("Ключ має бути 'n' або 'd'")
+
+    def __setitem__(self, key, value):
+        if not isinstance(value, int):
+            raise ValueError("Значення має бути цілим числом")
+        if key == 'n':
+            self._normalize(value, self.d)
+        elif key == 'd':
+            if value == 0:
+                raise RationalError()
+            self._normalize(self.n, value)
+        else:
+            raise KeyError("Ключ має бути 'n' або 'd'")
+
+if __name__ == "__main__":
+    print("=== Перевірка класу Rational ===")
+    r1 = Rational(4, 6)
+    r2 = Rational("3/9")
+    r3 = Rational(5, 3)
+
+    print("r1 =", r1)
+    print("r2 =", r2)
+    print("r3 =", r3)
+
+    print("\nАрифметичні операції:")
+    print("r1 + r2 =", r1 + r2)
+    print("r3 - 1 =", r3 - 1)
+    print("r2 * 2 =", r2 * 2)
+    print("r3 / r2 =", r3 / r2)
+
+    print("\nОператор (): десяткове значення r3 =", r3())
+
+    print("\nОператори []:")
+    print("r3['n'] =", r3['n'])
+    print("r3['d'] =", r3['d'])
+
+    print("\nЗміна значень через []:")
+    r3['n'] = 10
+    r3['d'] = 15
+    print("Модифікований r3 =", r3)
+
+    print("\nСпроба створити дріб з нульовим знаменником:")
+    try:
+        bad = Rational(1, 0)
+    except RationalError as e:
+        print("Помилка:", e)
+
+    print("\nСпроба поділити на нульовий дріб:")
+    try:
+        zero = Rational(0, 1)
+        result = r1 / zero
+    except RationalError as e:
+        print("Помилка:", e)
