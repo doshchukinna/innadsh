@@ -1,0 +1,153 @@
+import json
+
+
+class DocumentDB:
+    def __init__(self):
+        self.docs = []
+
+    def add(self, doc):
+        if "id" not in doc:
+            raise ValueError("Документ має містити id")
+        if any(d["id"] == doc["id"] for d in self.docs):
+            raise ValueError("ID вже існує")
+        self.docs.append(doc)
+
+    def delete(self, doc_id):
+        self.docs = [d for d in self.docs if d["id"] != doc_id]
+
+    def _get(self, doc, field):
+        keys = field.split(".")
+        cur = doc
+        for k in keys:
+            if isinstance(cur, dict) and k in cur:
+                cur = cur[k]
+            else:
+                return None
+        return cur
+
+    def update(self, doc_id, field, value):
+        for d in self.docs:
+            if d["id"] == doc_id:
+                keys = field.split(".")
+                cur = d
+                for k in keys[:-1]:
+                    if k not in cur:
+                        cur[k] = {}
+                    cur = cur[k]
+                cur[keys[-1]] = value
+
+    def find(self, field, op, value):
+        res = []
+        for d in self.docs:
+            v = self._get(d, field)
+
+            if op == "=" and v == value:
+                res.append(d)
+            elif op == ">" and v > value:
+                res.append(d)
+            elif op == "<" and v < value:
+                res.append(d)
+            elif op == ">=" and v >= value:
+                res.append(d)
+            elif op == "<=" and v <= value:
+                res.append(d)
+            elif op == "in" and isinstance(v, list) and value in v:
+                res.append(d)
+
+        return res
+
+    def aggregate(self, op, field):
+        vals = []
+
+        for d in self.docs:
+            v = self._get(d, field)
+            if isinstance(v, (int, float)):
+                vals.append(v)
+
+        if not vals:
+            return None
+
+        if op == "count":
+            return len(vals)
+        if op == "sum":
+            return sum(vals)
+        if op == "avg":
+            return sum(vals) / len(vals)
+        if op == "min":
+            return min(vals)
+        if op == "max":
+            return max(vals)
+
+    def groupby(self, field):
+        groups = {}
+        for d in self.docs:
+            key = self._get(d, field)
+            groups.setdefault(key, []).append(d)
+        return groups
+
+    def save(self, filename):
+        with open(filename, "w", encoding="utf-8") as f:
+            json.dump(self.docs, f, ensure_ascii=False, indent=2)
+
+    def load(self, filename):
+        with open(filename, "r", encoding="utf-8") as f:
+            self.docs = json.load(f)
+
+
+db = DocumentDB()
+
+while True:
+    cmd = input("\nDB> ")
+
+    try:
+        parts = cmd.split(" ", 1)
+        action = parts[0]
+
+        if action == "add":
+            db.add(json.loads(parts[1]))
+            print("OK")
+
+        elif action == "delete":
+            db.delete(int(parts[1]))
+            print("OK")
+
+        elif action == "update":
+            doc_id, field, value = parts[1].split(" ", 2)
+            try:
+                value = json.loads(value)
+            except:
+                pass
+            db.update(int(doc_id), field, value)
+            print("OK")
+
+        elif action == "find":
+            field, op, value = parts[1].split(" ", 2)
+            try:
+                value = json.loads(value)
+            except:
+                pass
+            print(db.find(field, op, value))
+
+        elif action == "aggregate":
+            op, field = parts[1].split()
+            print(db.aggregate(op, field))
+
+        elif action == "groupby":
+            print(db.groupby(parts[1]))
+
+        elif action == "save":
+            db.save(parts[1])
+            print("saved")
+
+        elif action == "load":
+            db.load(parts[1])
+            print("loaded")
+
+        elif action == "exit":
+            break
+
+        else:
+            print("Unknown command")
+
+    except Exception as e:
+        print("Error:", e)
