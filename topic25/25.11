@@ -1,0 +1,60 @@
+import socket
+import threading
+
+
+def run_server():
+    server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    server.bind(("localhost", 6000))
+    server.listen(2)
+
+    print("Waiting for 2 clients...")
+
+    clients = []
+
+    for i in range(2):
+        conn, addr = server.accept()
+        print(f"Client {i+1} connected:", addr)
+        clients.append(conn)
+
+    print("Chat started (turn-based)")
+
+    turn = 0
+
+    while True:
+        msg = clients[turn].recv(1024).decode()
+
+        if not msg:
+            break
+
+        print(f"Client{turn+1}: {msg}")
+
+        other = 1 - turn
+        clients[other].send(msg.encode())
+
+        turn = other
+
+
+def run_client():
+    client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    client.connect(("localhost", 6000))
+
+    print("Connected to chat server")
+
+    while True:
+        msg = input("You: ")
+
+        client.send(msg.encode())
+
+        reply = client.recv(1024).decode()
+        print("Other:", reply)
+
+
+print("1 - Server")
+print("2 - Client")
+
+mode = input("Choose mode: ")
+
+if mode == "1":
+    run_server()
+elif mode == "2":
+    run_client()
