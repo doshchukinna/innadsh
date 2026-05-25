@@ -1,1 +1,65 @@
+import random
+
+N = 10
+m = 4
+k = 20
+t1 = 3
+t2 = 5
+t3 = 15
+t4 = 8
+l_max = 6
+
+queues = [0] * N
+
+for i in range(k):
+    cash = random.randint(0, m - 1)
+    queues[cash] += 1
+
+active_cashiers = m
+reserve_cashiers = 0
+
+next_customer = random.randint(1, t1)
+next_break = random.randint(1, t3)
+
+simulation_time = 1000
+
+for time in range(simulation_time):
+
+    next_customer -= 1
+    if next_customer == 0:
+        min_queue = queues.index(min(queues[:active_cashiers]))
+        queues[min_queue] += 1
+        next_customer = random.randint(1, t1)
+
+    for i in range(active_cashiers):
+        if queues[i] > 0:
+            if random.randint(1, t2) == 1:
+                queues[i] -= 1
+
+    next_break -= 1
+    if next_break == 0 and active_cashiers > 1:
+        cashier = random.randint(0, active_cashiers - 1)
+
+        while queues[cashier] > 0:
+            target = queues.index(min(queues[:active_cashiers]))
+            queues[target] += 1
+            queues[cashier] -= 1
+
+        active_cashiers -= 1
+
+        if active_cashiers < N:
+            active_cashiers += 1
+
+        next_break = random.randint(1, t3)
+
+    max_queue = max(queues[:active_cashiers])
+
+    if max_queue > l_max and active_cashiers < N:
+        active_cashiers += 1
+        reserve_cashiers += 1
+
+print("Резервні касири:", reserve_cashiers)
+print("Працює кас:", active_cashiers)
+print("Максимальна черга:", max(queues[:active_cashiers]))
+```
 
