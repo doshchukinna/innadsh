@@ -1,0 +1,18 @@
+import requests
+import re
+from datetime import datetime
+
+city = input("Введіть місто: ")
+
+url = f"https://meteoprog.com/ua/weather/{city}/"
+
+response = requests.get(url)
+html = response.text
+
+temps = re.findall(r'[+-]\d+', html)
+temps = temps[:10]
+
+print("Дата:", datetime.now().strftime("%d.%m.%Y"))
+
+for i in range(0, len(temps), 2):
+    print("Мін:", temps[i], "Макс:", temps[i+1])
