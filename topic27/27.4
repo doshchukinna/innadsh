@@ -1,0 +1,25 @@
+from flask import Flask, render_template, request
+
+app = Flask(__name__)
+
+@app.route("/", methods=["GET", "POST"])
+def index():
+    result = None
+
+    if request.method == "POST":
+        seq = list(map(int, request.form["seq"].split()))
+
+        count = 0
+
+        for i in range(len(seq) - 1):
+            if seq[i] == 0:
+                break
+            if seq[i] * seq[i + 1] < 0:
+                count += 1
+
+        result = count
+
+    return render_template("index.html", result=result)
+
+if __name__ == "__main__":
+    app.run(debug=True) 
