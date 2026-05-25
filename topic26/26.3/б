@@ -1,0 +1,30 @@
+import requests
+from html.parser import HTMLParser
+from datetime import datetime
+
+
+class MyParser(HTMLParser):
+    def __init__(self):
+        super().__init__()
+        self.temps = []
+
+    def handle_data(self, data):
+        if "°C" in data:
+            self.temps.append(data.strip())
+
+
+city = input("Введіть місто: ")
+
+url = f"https://meteoprog.com/ua/weather/{city}/"
+
+response = requests.get(url)
+
+parser = MyParser()
+parser.feed(response.text)
+
+temps = parser.temps[:10]
+
+print("Дата:", datetime.now().strftime("%d.%m.%Y"))
+
+for i in range(0, len(temps), 2):
+    print("Мін:", temps[i], "Макс:", temps[i+1])
