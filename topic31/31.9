@@ -1,0 +1,41 @@
+import random
+
+N = 5000
+m = 6
+t = 60
+t1 = 5
+
+results = []
+
+for _ in range(1000):
+
+    arrivals = sorted([random.uniform(-t, 0) for i in range(N)])
+    turnstiles = [0] * m
+
+    passed = []
+
+    for arrival in arrivals:
+        gate = turnstiles.index(min(turnstiles))
+
+        start = max(arrival, turnstiles[gate])
+        service = random.randint(1, t1)
+
+        finish = start + service
+
+        turnstiles[gate] = finish
+        passed.append(finish)
+
+    needed_time = []
+
+    for i in range(N):
+        if passed[i] <= 0:
+            needed_time.append(-arrivals[i])
+
+    if needed_time:
+        results.append(sorted(needed_time)[int(0.9 * len(needed_time))])
+
+results.sort()
+
+answer = results[len(results) // 2]
+
+print("Мінімальний час до початку матчу:", round(answer, 2))
