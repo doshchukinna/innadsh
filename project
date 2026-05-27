@@ -1,0 +1,287 @@
+import tkinter as tk
+from tkinter import messagebox
+import sqlite3
+import requests
+from bs4 import BeautifulSoup
+
+# Підключення до бази даних
+conn = sqlite3.connect("monitor.db")
+cursor = conn.cursor()
+
+# Створення таблиці для тематик
+cursor.execute("""
+CREATE TABLE IF NOT EXISTS topics(
+id INTEGER PRIMARY KEY AUTOINCREMENT,
+keywords TEXT
+)
+""")
+
+# Створення таблиці для сайтів
+cursor.execute("""
+CREATE TABLE IF NOT EXISTS sites(
+id INTEGER PRIMARY KEY AUTOINCREMENT,
+url TEXT
+)
+""")
+
+# Створення таблиці для результатів моніторингу
+cursor.execute("""
+CREATE TABLE IF NOT EXISTS results(
+id INTEGER PRIMARY KEY AUTOINCREMENT,
+title TEXT,
+link TEXT
+)
+""")
+
+conn.commit()
+
+
+# Додавання нової тематики
+def add_topic():
+    text = topic_entry.get()
+
+    if text:
+        cursor.execute(
+            "INSERT INTO topics(keywords) VALUES(?)",
+            (text,)
+        )
+
+        conn.commit()
+
+        topic_entry.delete(0, tk.END)
+
+        load_topics()
+
+
+# Додавання нового сайту
+def add_site():
+    url = site_entry.get()
+
+    if url:
+        cursor.execute(
+            "INSERT INTO sites(url) VALUES(?)",
+            (url,)
+        )
+
+        conn.commit()
+
+        site_entry.delete(0, tk.END)
+
+        load_sites()
+
+
+# Завантаження тематик у список
+def load_topics():
+
+    topic_list.delete(0, tk.END)
+
+    cursor.execute(
+        "SELECT * FROM topics"
+    )
+
+    for row in cursor.fetchall():
+
+        topic_list.insert(
+            tk.END,
+            row[1]
+        )
+
+
+# Завантаження сайтів у список
+def load_sites():
+
+    site_list.delete(0, tk.END)
+
+    cursor.execute(
+        "SELECT * FROM sites"
+    )
+
+    for row in cursor.fetchall():
+
+        site_list.insert(
+            tk.END,
+            row[1]
+        )
+
+
+# Запуск моніторингу
+def monitor():
+
+    result_box.delete(0, tk.END)
+
+    cursor.execute(
+        "SELECT keywords FROM topics"
+    )
+
+    keywords = []
+
+    for i in cursor.fetchall():
+
+        words = i[0].split(",")
+
+        for word in words:
+
+            keywords.append(
+                word.strip().lower()
+            )
+
+    cursor.execute(
+        "SELECT url FROM sites"
+    )
+
+    sites = cursor.fetchall()
+
+    for site in sites:
+
+        try:
+
+            # Отримання HTML-коду сторінки
+            response = requests.get(site[0])
+
+            html = response.text
+
+            # Перетворення символів у байти
+            bytes_data = html.encode(
+                "utf-8"
+            )
+
+            # Перетворення байтів назад у текст
+            html = bytes_data.decode(
+                "utf-8"
+            )
+
+            # Аналіз HTML
+            soup = BeautifulSoup(
+                html,
+                "html.parser"
+            )
+
+            text = soup.get_text().lower()
+
+            for word in keywords:
+
+                if word in text:
+
+                    title = soup.title.string
+
+                    # Запис результату в базу
+                    cursor.execute(
+                        """
+                        INSERT INTO results
+                        (title,link)
+                        VALUES(?,?)
+                        """,
+                        (
+                            title,
+                            site[0]
+                        )
+                    )
+
+                    conn.commit()
+
+                    result_box.insert(
+                        tk.END,
+                        title
+                    )
+
+                    break
+
+        except:
+            pass
+
+    messagebox.showinfo(
+        "Готово",
+        "Моніторинг завершено"
+    )
+
+
+# Створення головного вікна
+window = tk.Tk()
+
+window.title(
+    "Інтернет-моніторинг"
+)
+
+window.geometry(
+    "700x600"
+)
+
+# Поле для тематик
+tk.Label(
+    window,
+    text="Ключові слова:"
+).pack()
+
+topic_entry = tk.Entry(
+    window,
+    width=50
+)
+
+topic_entry.pack()
+
+tk.Button(
+    window,
+    text="Додати тему",
+    command=add_topic
+).pack()
+
+topic_list = tk.Listbox(
+    window,
+    width=50
+)
+
+topic_list.pack()
+
+# Поле для сайтів
+tk.Label(
+    window,
+    text="Сайт:"
+).pack()
+
+site_entry = tk.Entry(
+    window,
+    width=50
+)
+
+site_entry.pack()
+
+tk.Button(
+    window,
+    text="Додати сайт",
+    command=add_site
+).pack()
+
+site_list = tk.Listbox(
+    window,
+    width=50
+)
+
+site_list.pack()
+
+# Кнопка запуску моніторингу
+tk.Button(
+    window,
+    text="Запустити моніторинг",
+    command=monitor
+).pack(
+    pady=10
+)
+
+# Вікно результатів
+tk.Label(
+    window,
+    text="Результати:"
+).pack()
+
+result_box = tk.Listbox(
+    window,
+    width=70,
+    height=10
+)
+
+result_box.pack()
+
+load_topics()
+load_sites()
+
+window.mainloop()
